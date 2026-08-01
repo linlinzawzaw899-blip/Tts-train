@@ -79,6 +79,35 @@
   .tts-card textarea:focus{border-color:var(--gold-dim);}
   .tts-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;}
   @media (max-width:560px){.tts-row{grid-template-columns:1fr;}}
+  .tts-card label .val{
+    font-family:'IBM Plex Mono',monospace;
+    color:var(--gold);
+    font-size:12px;
+    float:right;
+  }
+  input[type=range]{
+    -webkit-appearance:none;
+    width:100%;
+    height:4px;
+    background:var(--border);
+    border-radius:100px;
+    outline:none;
+    margin-top:10px;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;
+    width:16px;height:16px;
+    border-radius:50%;
+    background:var(--gold);
+    cursor:pointer;
+    border:2px solid #1a1305;
+    box-shadow:0 0 0 2px rgba(242,193,78,0.25);
+  }
+  input[type=range]::-moz-range-thumb{
+    width:16px;height:16px;border-radius:50%;
+    background:var(--gold);cursor:pointer;
+    border:2px solid #1a1305;
+  }
   .tts-warn{
     font-size:12.5px;color:var(--gold);
     background:rgba(242,193,78,0.06);
@@ -485,13 +514,16 @@
         </select>
         <input type="text" id="ttsCustomVoice" placeholder="ဥပမာ- th-TH-PremwadeeNeural" style="display:none;margin-top:8px;">
       </div>
+    </div>
+
+    <div class="tts-row">
       <div class="field" style="margin-bottom:0;">
-        <label for="ttsRate">အမြန်နှုန်း</label>
-        <select id="ttsRate">
-          <option value="-20%">ပိုနှေး</option>
-          <option value="+0%" selected>ပုံမှန်</option>
-          <option value="+20%">ပိုမြန်</option>
-        </select>
+        <label for="ttsRate">အမြန်နှုန်း <span class="val" id="ttsRateVal">+0%</span></label>
+        <input type="range" id="ttsRate" min="-50" max="50" step="5" value="0">
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label for="ttsPitch">အသံနေရာ / Pitch <span class="val" id="ttsPitchVal">+0Hz</span></label>
+        <input type="range" id="ttsPitch" min="-50" max="50" step="5" value="0">
       </div>
     </div>
 
@@ -979,6 +1011,9 @@ ${langInstruction}
   const ttsVoiceSelect = $('ttsVoice');
   const ttsCustomVoice = $('ttsCustomVoice');
   const ttsRateSelect = $('ttsRate');
+  const ttsRateVal = $('ttsRateVal');
+  const ttsPitchSelect = $('ttsPitch');
+  const ttsPitchVal = $('ttsPitchVal');
   const ttsBtn = $('ttsBtn');
   const ttsStatusLine = $('ttsStatusLine');
   const ttsErrorBox = $('ttsErrorBox');
@@ -990,6 +1025,17 @@ ${langInstruction}
 
   ttsVoiceSelect.addEventListener('change', () => {
     ttsCustomVoice.style.display = ttsVoiceSelect.value === 'custom' ? 'block' : 'none';
+  });
+
+  function fmtSigned(n, unit){
+    const num = Number(n);
+    return (num >= 0 ? '+' : '') + num + unit;
+  }
+  ttsRateSelect.addEventListener('input', () => {
+    ttsRateVal.textContent = fmtSigned(ttsRateSelect.value, '%');
+  });
+  ttsPitchSelect.addEventListener('input', () => {
+    ttsPitchVal.textContent = fmtSigned(ttsPitchSelect.value, 'Hz');
   });
 
   fillFromTranscriptBtn.addEventListener('click', () => {
@@ -1027,8 +1073,9 @@ ${langInstruction}
 
     try {
       const voice = getVoice();
-      const rate = ttsRateSelect.value;
-      const tts = new EdgeTTS(text, voice, { rate, volume: '+0%', pitch: '+0Hz' });
+      const rate = fmtSigned(ttsRateSelect.value, '%');
+      const pitch = fmtSigned(ttsPitchSelect.value, 'Hz');
+      const tts = new EdgeTTS(text, voice, { rate, volume: '+0%', pitch });
       const result = await tts.synthesize();
       lastAudioBlob = result.audio;
       const url = URL.createObjectURL(lastAudioBlob);
