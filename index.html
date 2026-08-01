@@ -948,13 +948,37 @@ ${langInstruction}
   // ---------- Copy / download ----------
   window.getPlainTranscriptText = () => lastSegments ? lastSegments.map(s => s.text).join('\n') : lastRawText;
 
+  function legacyCopy(text){
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    ta.style.top = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch { ok = false; }
+    document.body.removeChild(ta);
+    return ok;
+  }
+
   copyBtn.addEventListener('click', async () => {
     const plain = lastSegments ? lastSegments.map(s => s.text).join('\n') : lastRawText;
+    if (!plain) return;
+    let copied = false;
     try {
-      await navigator.clipboard.writeText(plain);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(plain);
+        copied = true;
+      }
+    } catch { copied = false; }
+    if (!copied) copied = legacyCopy(plain);
+
+    if (copied) {
       copyBtn.textContent = '✓ ကူးပြီးပါပြီ';
       setTimeout(() => copyBtn.textContent = '📋 ကူးမည်', 1600);
-    } catch {
+    } else {
       showError('Clipboard သို့ ကူးမရပါ — manual ရွေးပြီး ကူးပါ။', true);
     }
   });
@@ -1098,7 +1122,7 @@ ${langInstruction}
     if (!lastAudioBlob) return;
     const url = URL.createObjectURL(lastAudioBlob);
     const a = document.createElement('a');
-    a.href = url; a.download = 'speech.mp3';
+    a.href = url; a.download = 'movierecaptool.mp3';
     document.body.appendChild(a); a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
