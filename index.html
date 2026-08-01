@@ -63,6 +63,7 @@
   }
 
   /* ---- TTS card ---- */
+  .tts-card{margin-top:22px;}
   .tts-card textarea{
     width:100%;
     min-height:110px;
@@ -945,6 +946,8 @@ ${langInstruction}
   }
 
   // ---------- Copy / download ----------
+  window.getPlainTranscriptText = () => lastSegments ? lastSegments.map(s => s.text).join('\n') : lastRawText;
+
   copyBtn.addEventListener('click', async () => {
     const plain = lastSegments ? lastSegments.map(s => s.text).join('\n') : lastRawText;
     try {
@@ -1039,10 +1042,10 @@ ${langInstruction}
   });
 
   fillFromTranscriptBtn.addEventListener('click', () => {
-    const body = document.getElementById('transcriptBody');
-    const plain = body ? body.innerText.trim() : '';
-    if (plain && plain !== document.getElementById('emptyState')?.textContent.trim()) {
+    const plain = (typeof window.getPlainTranscriptText === 'function' ? window.getPlainTranscriptText() : '').trim();
+    if (plain) {
       ttsText.value = plain;
+      ttsErrorBox.style.display = 'none';
     } else {
       ttsErrorBox.style.display = 'block';
       ttsErrorBox.textContent = 'ကူးစရာ transcript စာသား မရှိသေးပါ — အရင် ဗီဒီယိုကနေ စာသားထုတ်ပါ (သို့) ဒီနေရာမှာ ကိုယ်တိုင်ရိုက်ထည့်ပါ။';
