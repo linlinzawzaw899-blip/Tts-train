@@ -571,20 +571,13 @@
   <div class="card translate-card">
     <h2><span class="num">5</span> စာသားမှ ဘာသာပြန်ခြင်း</h2>
 
-    <div class="translate-row">
-      <div class="field" style="margin-bottom:0;">
-        <label for="translateSrcLang">မူရင်းဘာသာစကား</label>
-        <select id="translateSrcLang">
-          <option value="auto">အလိုအလျောက် (Auto)</option>
-          <option value="zh">တရုတ်စာ (Chinese)</option>
-          <option value="en">English</option>
-        </select>
-      </div>
-      <div class="translate-arrow">➜</div>
-      <div class="field" style="margin-bottom:0;">
-        <label>ပြန်ဆိုမည့်ဘာသာစကား</label>
-        <input type="text" value="မြန်မာစာ (Myanmar)" disabled>
-      </div>
+    <div class="field">
+      <label for="translateSrcLang">မူရင်းဘာသာစကား</label>
+      <select id="translateSrcLang">
+        <option value="auto">အလိုအလျောက် (Auto)</option>
+        <option value="zh">တရုတ်စာ (Chinese)</option>
+        <option value="en">English</option>
+      </select>
     </div>
 
     <div class="field">
@@ -600,7 +593,10 @@
       <label for="translateOutput">မြန်မာဘာသာပြန်ချက်</label>
       <textarea id="translateOutput" readonly placeholder="ဘာသာပြန်ချက် ဒီနေရာမှာ ပေါ်လာပါမယ်"></textarea>
     </div>
-    <button class="tool-btn" id="translateCopyBtn" disabled>📋 ဘာသာပြန်ချက် ကူးမည်</button>
+    <div class="transcript-tools">
+      <button class="tool-btn" id="translateCopyBtn" disabled>📋 ဘာသာပြန်ချက် ကူးမည်</button>
+      <button class="tool-btn" id="translateClearBtn">🗑️ ဖျက်မည်</button>
+    </div>
     <div class="hint" style="margin-top:10px;">Section 1 မှာ ထည့်ထားတဲ့ Gemini API key ကိုပဲ ပြန်သုံးပါတယ် — key အသစ် ထပ်ထည့်စရာ မလိုပါ။</div>
   </div>
 
@@ -1097,6 +1093,7 @@ ${langInstruction}
   const translateErrorBox = $('translateErrorBox');
   const translateOutput = $('translateOutput');
   const translateCopyBtn = $('translateCopyBtn');
+  const translateClearBtn = $('translateClearBtn');
 
   function setTranslateStatus(text, active){
     translateStatusLine.innerHTML = text ? (active ? '<span class="dot"></span> ' : '') + text : '';
@@ -1184,6 +1181,14 @@ ${text}
     } else {
       showTranslateError('Clipboard သို့ ကူးမရပါ — manual ရွေးပြီး ကူးပါ။');
     }
+  });
+
+  translateClearBtn.addEventListener('click', () => {
+    translateInput.value = '';
+    translateOutput.value = '';
+    translateCopyBtn.disabled = true;
+    hideTranslateError();
+    setTranslateStatus('', false);
   });
 
 })();
