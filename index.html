@@ -558,7 +558,7 @@
     <div class="status-line" id="ttsStatusLine"></div>
     <div class="error-box" id="ttsErrorBox" style="display:none;"></div>
 
-    <div class="tts-warn">⚠️ ဒီ feature က Microsoft ရဲ့ ကန့်သတ်ချက်ကြောင့် <strong>Microsoft Edge browser</strong> ပေါ်မှာသာ အလုပ်လုပ်ပါတယ် — Chrome၊ Safari၊ Firefox (mobile အပါအဝင်) မှာ အလုပ်မလုပ်နိုင်ပါ။ Edge browser နဲ့ ဖွင့်ပြီးမှ စမ်းကြည့်ပါ။</div>
+    <div class="tts-warn" id="edgeWarnBox">⚠️ ဒီ feature က Microsoft ရဲ့ ကန့်သတ်ချက်ကြောင့် <strong>Microsoft Edge browser</strong> ပေါ်မှာသာ အလုပ်လုပ်ပါတယ် — Chrome၊ Safari၊ Firefox (mobile အပါအဝင်) မှာ အလုပ်မလုပ်နိုင်ပါ။ Edge browser နဲ့ ဖွင့်ပြီးမှ စမ်းကြည့်ပါ။</div>
 
     <div class="tts-audio" id="ttsAudioWrap">
       <audio id="ttsAudio" controls></audio>
@@ -1184,7 +1184,6 @@ ${text}
   });
 
   translateClearBtn.addEventListener('click', () => {
-    translateInput.value = '';
     translateOutput.value = '';
     translateCopyBtn.disabled = true;
     hideTranslateError();
@@ -1197,6 +1196,12 @@ ${text}
   import { EdgeTTS } from 'https://unpkg.com/edge-tts-universal/dist/browser.js';
 
   const $ = id => document.getElementById(id);
+
+  // Hide the "Edge browser only" warning when the app is actually opened in Microsoft Edge
+  const edgeWarnBox = $('edgeWarnBox');
+  const isEdgeBrowser = /Edg\//.test(navigator.userAgent);
+  if (edgeWarnBox && isEdgeBrowser) edgeWarnBox.style.display = 'none';
+
   const ttsText = $('ttsText');
   const fillFromTranscriptBtn = $('fillFromTranscript');
   const ttsVoiceSelect = $('ttsVoice');
