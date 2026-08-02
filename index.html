@@ -676,6 +676,32 @@
     return modelSelect.value;
   }
 
+  function sleepMs(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+  // Calls Gemini generateContent; on 429 rate-limit, waits the suggested delay and retries automatically.
+  async function fetchGeminiWithRetry(model, apiKey, payload, onRetryStatus, maxRetries){
+    maxRetries = maxRetries ?? 3;
+    let lastData = null, lastResp = null;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+        body: JSON.stringify(payload)
+      });
+      if (resp.status !== 429 || attempt === maxRetries) {
+        return { resp, data: await resp.json().catch(() => null) };
+      }
+      const data = await resp.json().catch(() => null);
+      lastResp = resp; lastData = data;
+      const msg = (data && data.error && data.error.message) || '';
+      const m = msg.match(/retry in ([\d.]+)s/i);
+      const waitSec = m ? Math.ceil(parseFloat(m[1])) + 1 : (3 * (attempt + 1));
+      if (onRetryStatus) onRetryStatus(waitSec, attempt + 1, maxRetries);
+      await sleepMs(waitSec * 1000);
+    }
+    return { resp: lastResp, data: lastData };
+  }
+
   // ---------- Upload zone ----------
   dropzone.addEventListener('click', () => fileInput.click());
   dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
@@ -846,15 +872,17 @@ ${langInstruction}
       generationConfig: { temperature: 0.2 }
     };
 
-    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-      body: JSON.stringify(payload)
+    const resp_data = await fetchGeminiWithRetry(model, apiKey, payload, (waitSec, attempt, max) => {
+      setStatus(`Rate limit ကို ထိခိုက်နေလို့ ${waitSec}s စောင့်ပြီး ပြန်ကြိုးစားနေသည် (${attempt}/${max})…`, true);
+      captionTxt.textContent = `${waitSec}s စောင့်နေသည်…`;
     });
-
-    const data = await resp.json();
+    const resp = resp_data.resp;
+    const data = resp_data.data;
 
     if (!resp.ok) {
+      if (resp.status === 429) {
+        throw new Error('Gemini rate limit ကို ထပ်ခါတလဲလဲ ထိနေပါတယ် — client-side app ဆိုတော့ free tier quota (မိနစ်ပိုင်း) ကို အလွယ်တကူ ကျော်တတ်ပါတယ်။ ခဏစောင့်ပြီး ပြန်စမ်းကြည့်ပါ (သို့) model ကို Gemini 3.5 Flash Lite သို့ ပြောင်းပြီး စမ်းကြည့်ပါ။');
+      }
       const msg = (data && data.error && data.error.message) ? data.error.message : `HTTP ${resp.status}`;
       throw new Error(msg);
     }
@@ -1136,13 +1164,15 @@ ${text}
         contents: [{ parts: [{ text: buildTranslatePrompt(text) }] }],
         generationConfig: { temperature: 0.2 }
       };
-      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-        body: JSON.stringify(payload)
+      const resp_data = await fetchGeminiWithRetry(model, apiKey, payload, (waitSec, attempt, max) => {
+        setTranslateStatus(`Rate limit ကို ထိခိုက်နေလို့ ${waitSec}s စောင့်ပြီး ပြန်ကြိုးစားနေသည် (${attempt}/${max})…`, true);
       });
-      const data = await resp.json();
+      const resp = resp_data.resp;
+      const data = resp_data.data;
       if (!resp.ok) {
+        if (resp.status === 429) {
+          throw new Error('Gemini rate limit ကို ထပ်ခါတလဲလဲ ထိနေပါတယ် — client-side app ဆိုတော့ free tier quota (မိနစ်ပိုင်း) ကို အလွယ်တကူ ကျော်တတ်ပါတယ်။ ခဏစောင့်ပြီး ပြန်စမ်းကြည့်ပါ (သို့) model ကို Gemini 3.5 Flash Lite သို့ ပြောင်းပြီး စမ်းကြည့်ပါ။');
+        }
         const msg = (data && data.error && data.error.message) ? data.error.message : `HTTP ${resp.status}`;
         throw new Error(msg);
       }
