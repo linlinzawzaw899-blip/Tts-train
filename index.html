@@ -62,6 +62,32 @@
     font-size:15px;
   }
 
+  /* ---- Translate card ---- */
+  .translate-card{margin-top:22px;}
+  .translate-card textarea{
+    width:100%;
+    min-height:110px;
+    background:var(--panel-alt);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:11px 12px;
+    border-radius:9px;
+    font-size:14px;
+    font-family:'Noto Sans Myanmar',sans-serif;
+    resize:vertical;
+    outline:none;
+  }
+  .translate-card textarea:focus{border-color:var(--gold-dim);}
+  .translate-card textarea[readonly]{color:var(--gold);background:#181a1f;}
+  .translate-row{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:end;margin-bottom:14px;}
+  @media (max-width:640px){.translate-row{grid-template-columns:1fr;}}
+  .translate-arrow{
+    display:flex;align-items:center;justify-content:center;
+    color:var(--gold-dim);font-size:18px;
+    padding-bottom:11px;
+  }
+  @media (max-width:640px){.translate-arrow{transform:rotate(90deg);padding:0;}}
+
   /* ---- TTS card ---- */
   .tts-card{margin-top:22px;}
   .tts-card textarea{
@@ -381,7 +407,7 @@
 
   <header>
     <div class="eyebrow"> </div>
-    <p>ဗီဒီယိုကို တင်လိုက်ရုံနဲ့ Gemini (သို့) AssemblyAI က အသံကို နားထောင်ပြီး စာသားထုတ်ပေးပါလိမ့်မယ်။ သင့် API key ကို ဒီစက်ထဲမှာပဲ ထားသိမ်းပြီး ရွေးထားတဲ့ ဝန်ဆောင်မှုဆီကိုပဲ တိုက်ရိုက်ပို့မှာဖြစ်လို့ ဘယ်ဆာဗာကိုမှ ကူးပို့မှာ မဟုတ်ပါဘူး။</p>
+    <p> </p>
     <div class="help-banner">
       <span>အကူညီလိုပါက —</span>
       <a href="https://t.me/linlinzawofficial" target="_blank" rel="noopener">Telegram Channel ကို Join လုပ်ပါ</a>
@@ -495,7 +521,7 @@
   </div>
 
   <div class="card tts-card">
-    <h2><span class="num">4</span> စာသားမှ အသံထုတ်ခြင်း (Edge TTS)</h2>
+    <h2><span class="num">4</span> စာသားမှ အသံထုတ်ခြင်း </h2>
 
     <div class="field">
       <label for="ttsText">အသံထုတ်လိုသည့် စာသား</label>
@@ -540,6 +566,42 @@
         <button class="tool-btn" id="ttsDownload">🔽 .mp3 ဒေါင်းလုဒ်</button>
       </div>
     </div>
+  </div>
+
+  <div class="card translate-card">
+    <h2><span class="num">5</span> စာသားမှ ဘာသာပြန်ခြင်း</h2>
+
+    <div class="translate-row">
+      <div class="field" style="margin-bottom:0;">
+        <label for="translateSrcLang">မူရင်းဘာသာစကား</label>
+        <select id="translateSrcLang">
+          <option value="auto">အလိုအလျောက် (Auto)</option>
+          <option value="zh">တရုတ်စာ (Chinese)</option>
+          <option value="en">English</option>
+        </select>
+      </div>
+      <div class="translate-arrow">➜</div>
+      <div class="field" style="margin-bottom:0;">
+        <label>ပြန်ဆိုမည့်ဘာသာစကား</label>
+        <input type="text" value="မြန်မာစာ (Myanmar)" disabled>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="translateInput">မူရင်းစာသား (တရုတ် / English)</label>
+      <textarea id="translateInput" placeholder="ဒီနေရာမှာ တရုတ်စာ (သို့) English စာသားကို paste ချထည့်ပါ"></textarea>
+    </div>
+
+    <button class="primary-btn" id="translateBtn">🌐 မြန်မာဘာသာပြန်မည်</button>
+    <div class="status-line" id="translateStatusLine"></div>
+    <div class="error-box" id="translateErrorBox" style="display:none;"></div>
+
+    <div class="field" style="margin-top:16px;">
+      <label for="translateOutput">မြန်မာဘာသာပြန်ချက်</label>
+      <textarea id="translateOutput" readonly placeholder="ဘာသာပြန်ချက် ဒီနေရာမှာ ပေါ်လာပါမယ်"></textarea>
+    </div>
+    <button class="tool-btn" id="translateCopyBtn" disabled>📋 ဘာသာပြန်ချက် ကူးမည်</button>
+    <div class="hint" style="margin-top:10px;">Section 1 မှာ ထည့်ထားတဲ့ Gemini API key ကိုပဲ ပြန်သုံးပါတယ် — key အသစ် ထပ်ထည့်စရာ မလိုပါ။</div>
   </div>
 
   <footer> </footer>
@@ -1026,6 +1088,103 @@ ${langInstruction}
     }
     return out.trim();
   }
+
+  // ---------- Translate ----------
+  const translateSrcLang = $('translateSrcLang');
+  const translateInput = $('translateInput');
+  const translateBtn = $('translateBtn');
+  const translateStatusLine = $('translateStatusLine');
+  const translateErrorBox = $('translateErrorBox');
+  const translateOutput = $('translateOutput');
+  const translateCopyBtn = $('translateCopyBtn');
+
+  function setTranslateStatus(text, active){
+    translateStatusLine.innerHTML = text ? (active ? '<span class="dot"></span> ' : '') + text : '';
+  }
+  function showTranslateError(msg){
+    translateErrorBox.style.display = 'block';
+    translateErrorBox.textContent = msg;
+  }
+  function hideTranslateError(){ translateErrorBox.style.display = 'none'; }
+
+  function buildTranslatePrompt(text){
+    const src = translateSrcLang.value;
+    let srcNote = 'ဤစာသားသည် တရုတ်စာ (Chinese) ဖြစ်စေ၊ English ဖြစ်စေ၊ အခြားဘာသာစကား ဖြစ်စေ၊ ဘာသာစကားကို အလိုအလျောက် သိရှိပြီး ဘာသာပြန်ပါ။';
+    if (src === 'zh') srcNote = 'ဤစာသားသည် တရုတ်စာ (Chinese) ဖြစ်သည်။';
+    if (src === 'en') srcNote = 'ဤစာသားသည် English ဖြစ်သည်။';
+    return `${srcNote}
+အောက်ပါစာသားကို သဘာဝကျပြီး ရှင်းလင်းသော မြန်မာဘာသာစကားသို့ ပြန်ဆိုပါ။
+မြန်မာဘာသာပြန်ချက်ကိုသာ ပြန်ပေးပါ — မူရင်းစာသား၊ ရှင်းလင်းချက်၊ header၊ markdown formatting မထည့်ပါနှင့်။
+
+---
+${text}
+---`;
+  }
+
+  translateBtn.addEventListener('click', async () => {
+    const apiKey = apiKeyInput.value.trim();
+    const text = translateInput.value.trim();
+    if (!apiKey) { showTranslateError('Section 1 မှာ Gemini API key ရိုက်ထည့်ပါ။'); apiKeyInput.focus(); return; }
+    if (!text) { showTranslateError('ဘာသာပြန်ဖို့ စာသား ထည့်ပါ။'); translateInput.focus(); return; }
+
+    hideTranslateError();
+    translateBtn.disabled = true;
+    translateCopyBtn.disabled = true;
+    translateOutput.value = '';
+    setTranslateStatus('ဘာသာပြန်နေသည်…', true);
+
+    try {
+      const model = getModel();
+      const payload = {
+        contents: [{ parts: [{ text: buildTranslatePrompt(text) }] }],
+        generationConfig: { temperature: 0.2 }
+      };
+      const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+        body: JSON.stringify(payload)
+      });
+      const data = await resp.json();
+      if (!resp.ok) {
+        const msg = (data && data.error && data.error.message) ? data.error.message : `HTTP ${resp.status}`;
+        throw new Error(msg);
+      }
+      const candidate = data.candidates && data.candidates[0];
+      const translated = candidate && candidate.content && candidate.content.parts
+        ? candidate.content.parts.map(p => p.text || '').join('\n').trim()
+        : '';
+      if (!translated) throw new Error('ဘာသာပြန်ချက် ပြန်မလာပါ — ထပ်စမ်းကြည့်ပါ။');
+
+      translateOutput.value = translated;
+      translateCopyBtn.disabled = false;
+      setTranslateStatus('ပြီးပါပြီ ✓', false);
+    } catch (err) {
+      console.error(err);
+      showTranslateError('အမှားဖြစ်သွားပါတယ်: ' + err.message);
+      setTranslateStatus('', false);
+    } finally {
+      translateBtn.disabled = false;
+    }
+  });
+
+  translateCopyBtn.addEventListener('click', async () => {
+    const text = translateOutput.value;
+    if (!text) return;
+    let copied = false;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        copied = true;
+      }
+    } catch { copied = false; }
+    if (!copied) copied = legacyCopy(text);
+    if (copied) {
+      translateCopyBtn.textContent = '✓ ကူးပြီးပါပြီ';
+      setTimeout(() => translateCopyBtn.textContent = '📋 ဘာသာပြန်ချက် ကူးမည်', 1600);
+    } else {
+      showTranslateError('Clipboard သို့ ကူးမရပါ — manual ရွေးပြီး ကူးပါ။');
+    }
+  });
 
 })();
 </script>
